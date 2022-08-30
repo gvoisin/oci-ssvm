@@ -136,18 +136,17 @@ export async function getInstancePrimaryPrivateIp(instance) {
     return null;
 }
 
-export async function startInstance(instanceId) {
-    console.log("starting "  + instanceId);
+export async function actionInstance(instanceId, action) {
+    console.log(action + " "  + instanceId);
     const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
     const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
 
     try {
         const request: core.requests.InstanceActionRequest = {
-            action: "START",
+            action: action,
             instanceId: instanceId,
         };
-        const startInstanceResponse = await client.instanceAction(request);
-        console.log(startInstanceResponse);
+        const actionInstanceResponse = await client.instanceAction(request);
         return null;
     } catch (error) {
         console.log("Start Instance Failed with error  " + error);

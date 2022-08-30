@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, Outlet, useLoaderData, Form, useMatches, useFetcher, useTransition } from "@remix-run/react";
 import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node"
 import { json } from "@remix-run/node";
-import { getCompartments, getInstances, startInstance, getInstancePrimaryPrivateIp, defaultTagNs, defaultTagName, defaultTagValue, defaultTagNames } from "~/oci";
+import { getCompartments, getInstances, actionInstance, getInstancePrimaryPrivateIp, defaultTagNs, defaultTagName, defaultTagValue, defaultTagNames } from "~/oci";
 import { InstanceLifecycleState } from "~/constants";
 
 import {
@@ -35,7 +35,7 @@ export async function loader({ request, params }: LoaderArgs) {
   console.log(defaultTagNames);
   // Filter with Tags to only get Dev workstations : vmtypes->dev->workstation
   let listWorkstations = vmInstances?.filter(function (vmInstance) {
-    return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs]["dev"] === defaultTagValue);
+    return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs]["dev"] === defaultTagValue) && vmInstance.lifecycleState !== InstanceLifecycleState.Terminated;
   })
 
   const addVnic = async (instance) => {
@@ -62,7 +62,12 @@ export const action: ActionFunction = async ({ request }: { request: Request }) 
     }
     case "start-instance": {
       const instanceId = formData?.get("id")
-      return startInstance(instanceId)
+      return actionInstance(instanceId, "START")
+
+    }
+    case "stop-instance": {
+      const instanceId = formData?.get("id")
+      return actionInstance(instanceId, "STOP")
 
     }
     case "refresh-workstations": {
@@ -82,24 +87,26 @@ export default function WorkstationsRoute() {
   let loadingMessage = "Loading";
 
   const compartmentListForm = useFetcher();
+  const refreshForm = useFetcher();
+  
   const hidden:boolean = true;
-  let isBusy = compartmentListForm.submission;
+  let isBusy = compartmentListForm.submission || refreshForm.submission;
   if (compartmentListForm.submission) { 
     loadingMessage = loadingMessage + " workstations from compartment " + compartmentListForm.submission.formData.get("compartment");
   }
 
   return (
-    <div className="relative h-full grid grid-cols-3 gap-4 p-10">
-      <h1 className="font-display text-d-h3 text-black col-span-3">Workstations</h1>
-        <div className=" p-5 col-span-2">
+    <div className="relative h-full grid grid-cols-4 gap-4 p-10">
+      <h1 className="font-display text-d-h3 text-black col-span-4">Workstations</h1>
+        <div className="items-center py-2 w-50 col-span-2">
           <compartmentListForm.Form
               method="post"
-              className="update-compartment"
+              className="items-center"
               hidden={!hidden}>
               <input type="hidden" name="intent" value="update-compartment" />
               <Select
-                  size='md' 
                   name="compartment"
+                  className="items-center"
                   placeholder='Select option' 
                   onChange={(e) => compartmentListForm.submit(e.target.form)}
                   defaultValue={selectedCompartment.name} >
@@ -108,29 +115,29 @@ export default function WorkstationsRoute() {
                 </Select>
             </compartmentListForm.Form>
         </div>
-        <div className="p-2 col-span-1">
-        <Form
-            method="POST"
+        <div className="items-center p-2 col-span-1">
+        <refreshForm.Form
+            method="post"
             className="refresh">
               <input type="hidden" name="intent" value="refresh-workstations" />
               <button
                 action="submit"
-                className="bg-blue-300 p-2 rounded mx-20 hover:bg-blue-600 hover:text-white"
+                className="bg-blue-300 p-2  w-40 mx-40 rounded hover:bg-blue-600 hover:text-white shadow-lg"
                 disabled={isBusy}
                 aria-label="Refresh"
                 name="_action"
                 value="refresh">{isBusy ? 'Refreshing' : 'Refresh'}</button>
-            </Form>
+            </refreshForm.Form>
 
 
         </div>
-      <div className="overflow-hidden rounded-lg border border-gray-200 col-span-3">
+      <div className="overflow-hidden rounded-lg border border-gray-200 col-span-4">
         { !isBusy ? (<div>
           { workstationsNotFound ?
             (<div className="p-12 text-red-500">No workstations found in this compartment <strong>{selectedCompartment.name}</strong></div>) 
             : (
               <TableContainer>
-                <Table variant='striped' colorScheme='teal'>
+                <Table variant='simple' colorScheme='teal'>
                   <Thead>
                     <Tr>
                       <th className="border border-gray-100 py-2 px-4"></th>
@@ -138,7 +145,7 @@ export default function WorkstationsRoute() {
                       <th className="border border-gray-100 py-2 px-2">State</th>
                       <th className="border border-gray-100 py-2 px-4">Private IP</th>
                       <th className="border border-gray-100 py-2 px-2">Shape</th>
-                      <th className="border border-gray-100 py-2 px-2">OCPU Count</th>
+                      <th className="border border-gray-100 py-2 px-2">OCPU</th>
                       <th className="border border-gray-100 py-2 px-2">Memory (GB)</th>
                       <th className="border border-gray-100 py-2 px-2">Action</th>
                     </Tr>
@@ -163,11 +170,30 @@ export default function WorkstationsRoute() {
 function InstanceItem({instance}, key) {
   const transition = useTransition();
 
-  const isSubmitting = transition.state === "submitting";
-  const isNotStartable =  instance.lifecycleState !== InstanceLifecycleState.Stopped
+  const isSubmitting = transition.submission?.formData.get("id") === instance.id;
+
+  let isStartable, isStoppable, isHidden = false;
+  let rowColor =  "bg-yellow-100";
+
+  switch (instance.lifecycleState)  {
+    case  InstanceLifecycleState.Running:
+        rowColor = "bg-green-50";
+        isStartable = false;
+        isStoppable = true;
+        break;
+    case  InstanceLifecycleState.Stopped:
+        rowColor = "bg-red-100";
+        isStartable = true;
+        isStoppable = false;
+        break;
+    default:
+      isStartable = true;
+      isStoppable = true;
+
+  }
 
   return (
-    <Tr>
+    <Tr className={rowColor}>
       <Td className="border border-gray-100 py-2 px-4">
       </Td>
       <Td className="border border-gray-100 py-2 px-4 text-center">
@@ -199,12 +225,27 @@ function InstanceItem({instance}, key) {
           <input type="hidden" name="intent" value="start-instance" />
           <button
             type='submit'
-            className="bg-red-300 p-2 rounded mx-20 hover:bg-red-600 hover:text-white"
-            hidden={isNotStartable}
-            disabled={isNotStartable}
+            className="bg-green-300 p-2  w-20 mx-20 rounded  hover:bg-green-600 hover:text-white"
+            hidden={isStoppable}
+            disabled={!isStartable}
             aria-label="start"
             name="_action"
-            value="start">{isSubmitting ? 'Starting' : isNotStartable ? ' -' : 'Start'}</button>
+            value="start">{isSubmitting ? 'Starting' :  'Start'}</button>
+      </Form>
+      <Form
+          method="post"
+          className="update-compartment">
+          <input type="hidden" name="id" value={instance.id} />
+          <input type="hidden" name="name" value={instance.displayName} />
+          <input type="hidden" name="intent" value="stop-instance" />
+          <button
+            type='submit'
+            className="bg-red-300 p-2  w-20 mx-20 rounded  hover:bg-red-600 hover:text-white"
+            hidden={isStartable}
+            disabled={!isStoppable}
+            aria-label="stop"
+            name="_action"
+            value="stop">{isSubmitting ? 'Stopping' : 'Stop'}</button>
       </Form>
       </Td>
     </Tr>
@@ -233,12 +274,12 @@ function StatusLabel({
   return (
 <span className="oui-flex oui-flex-middle">
   <span role="status" className="lowercase rounded">
-    <span data-oui-icon="icon: circle; ratio: 0.7" 
+    {/* <span data-oui-icon="icon: circle; ratio: 0.7" 
           className="rounded-full">
       <svg width="14" height="14" viewBox="0 0 20 20" focusable="false" xmlns="http://www.w3.org/2000/svg" ratio="0.7"> 
         <circle cx="10" cy="10" r="9"> </circle>
       </svg>
-    </span>
+    </span> */}
     {children}
   </span>
 </span>
