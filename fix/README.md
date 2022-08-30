@@ -10,3 +10,8 @@ I updated two files so they can work with **oci-sdk** version 2.40.0:
 
 Those files need to replace the standard one after running `npm install`
 
+```shell
+  cp fix/helper.js node_modules/oci-common/lib
+  cp fix/url-based-x509-certificate-supplier.js node_modules/oci-common/lib/auth/
+```
+

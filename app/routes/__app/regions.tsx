@@ -2,14 +2,12 @@ import * as React from "react";
 import { Link, Outlet, useLoaderData, useMatches } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/node"
 import { json } from "@remix-run/node";
-import { provider,getRegions } from "~/oci";
+import { getRegions } from "~/oci";
 
 
 export async function loader({ request }: LoaderArgs) {
-  const tenancy = provider.getTenantId();
-  console.log(tenancy);
   const regions = await getRegions({
-    tenancy: tenancy || ""
+    tenancy:  ""
   });
   return {regions};
 }

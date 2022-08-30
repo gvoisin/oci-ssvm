@@ -14,7 +14,7 @@ export default function Index() {
           <div className="flex flex-col font-bold text-gray-800">
             <NavItem to="regions">Regions</NavItem>
             <NavItem to="workstations">Dev Workstations</NavItem>
-            <NavItem to="compartments">Compartments</NavItem>
+            {/* <NavItem to="compartments">Compartments</NavItem> */}
             {/*<NavItem to="sales">Sales</NavItem>
             <NavItem to="expenses">Expenses</NavItem>
             <NavItem to="reports">Reports</NavItem> */}

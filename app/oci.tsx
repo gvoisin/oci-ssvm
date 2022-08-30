@@ -15,7 +15,13 @@ export const ENV_PRODUCTION = process.env.NODE_ENV === "production";
 //     profile
 // );
 
-export const provider = ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+const DefaultTenancyId = process.env.DEFAULT_TENANTID;
+export const defaultCompartmentId = process.env.DEFAULT_COMPARTMENTID;
+export const defaultCompartmentName = process.env.DEFAULT_COMPARTMENTNAME;
+export const defaultTagNs = process.env.TAG_NAMESPACE
+export const defaultTagName = process.env.TAG_NAME
+export const defaultTagNames = process.env.TAG_NAME?.split(',');
+export const defaultTagValue = process.env.TAG_VALUE
 
 function ociAuthenticationDetailsProvider(isProduction: boolean) {
     if ( !isProduction ) {
@@ -23,28 +29,24 @@ function ociAuthenticationDetailsProvider(isProduction: boolean) {
                 configurationFilePath,
                 profile
         );
-        
+
         return provider;
     } else {
         const provider = new common.InstancePrincipalsAuthenticationDetailsProviderBuilder().build();
-        
+
         return provider;
     }
 };
 // process.env.NODE_ENV === "production"
 
-export const identityClient = new identity.IdentityClient({ authenticationDetailsProvider: provider });
 
-export const objectStorageClient: os.ObjectStorageClient = 
-    new os.ObjectStorageClient({
-    authenticationDetailsProvider: provider
-});
 
 export async function getAvailabilityDomain(): Promise<identity.models.AvailabilityDomain[]> {
-    const tenancyId = provider.getTenantId();
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+    const identityClient = new identity.IdentityClient({ authenticationDetailsProvider: provider });
 
     const request: identity.requests.ListAvailabilityDomainsRequest = {
-      compartmentId: tenancyId
+      compartmentId: DefaultTenancyId
     };
 
     const response = await identityClient.listAvailabilityDomains(request);
@@ -53,10 +55,11 @@ export async function getAvailabilityDomain(): Promise<identity.models.Availabil
 }
 
 export async function getCompartments({tenancy: string}): Promise<identity.models.Compartment[]> {
-    const tenancyId = provider.getTenantId();
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+    const identityClient = new identity.IdentityClient({ authenticationDetailsProvider: provider });
 
     const request: identity.requests.ListCompartmentsRequest = {
-      compartmentId: tenancyId,
+      compartmentId: DefaultTenancyId,
       compartmentIdInSubtree: true
     };
 
@@ -65,27 +68,52 @@ export async function getCompartments({tenancy: string}): Promise<identity.model
 }
 
 export async function getRegions({tenancy: string}): Promise<identity.models.RegionSubscription[]> {
-    const tenancyId = provider.getTenantId();
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);    
+    const identityClient = new identity.IdentityClient({ authenticationDetailsProvider: provider });
 
     const request: identity.requests.ListRegionSubscriptionsRequest = {
-      tenancyId: tenancyId,
+      tenancyId: DefaultTenancyId,
     };
 
     const response = await identityClient.listRegionSubscriptions(request);
     return response.items;
 }
 
-export async function getWorkstations({tenancy: string}) {
+export async function getWorkstations(selectedCompartmentId:string = defaultCompartmentId) {
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
     const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
-
+    console.log(selectedCompartmentId)
     try {
         const listInstancesRequest: core.requests.ListInstancesRequest = {
-            compartmentId: "ocid1.compartment.oc1..aaaaaaaayoldhaolk5n6joepn6lp6sznrcfoeet6tohsotg3lmcg3ydujyya",
+            compartmentId: selectedCompartmentId,
         };
         const listInstancesResponse = await client.listInstances(listInstancesRequest);
+//        console.log(listInstancesResponse.items);
         return listInstancesResponse.items;
     } catch (error) {
         console.log("listInstances Failed with error  " + error);
     }
     return null;
+}
+
+
+export async function startInstance(instanceId) {
+    console.log("starting "  + instanceId);
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+    const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
+
+    try {
+        const request: core.requests.InstanceActionRequest = {
+            action: "START",
+            instanceId: instanceId,
+        };
+        const startInstanceResponse = await client.instanceAction(request);
+        console.log(startInstanceResponse);
+        return null;
+    } catch (error) {
+        console.log("Start Instance Failed with error  " + error);
+    }
+    return null;
+
+
 }
