@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, Outlet, useLoaderData, Form, useMatches, useFetcher, useTransition } from "@remix-run/react";
 import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node"
 import { json } from "@remix-run/node";
-import { getCompartments, getWorkstations, startInstance, defaultTagNs, defaultTagName, defaultTagValue, defaultTagNames } from "~/oci";
+import { getCompartments, getInstances, startInstance, getInstancePrimaryPrivateIp, defaultTagNs, defaultTagName, defaultTagValue, defaultTagNames } from "~/oci";
 import { InstanceLifecycleState } from "~/constants";
 
 import {
@@ -30,13 +30,19 @@ export async function loader({ request, params }: LoaderArgs) {
   const selectedCompartmentId = selectedCompartment?.id;
 //  const selectedCompartment = compartments.find(compartment => compartment.id === compartmentId).name;
 
-  const vmInstances = await getWorkstations(selectedCompartmentId);
+  const vmInstances = await getInstances(selectedCompartmentId);
 
   console.log(defaultTagNames);
   // Filter with Tags to only get Dev workstations : vmtypes->dev->workstation
-  let workstations = vmInstances?.filter(function (vmInstance) {
+  let listWorkstations = vmInstances?.filter(function (vmInstance) {
     return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs]["dev"] === defaultTagValue);
   })
+
+  const addVnic = async (instance) => {
+    const vnic = await getInstancePrimaryPrivateIp(instance)
+    return  { ...instance, vnic}
+  }
+  const workstations = await Promise.all(listWorkstations.map((addVnic)))
 
   return { selectedCompartment, compartments, workstations };
 }
@@ -129,9 +135,11 @@ export default function WorkstationsRoute() {
                     <Tr>
                       <th className="border border-gray-100 py-2 px-4"></th>
                       <th className="border border-gray-100 py-2 px-4">Name</th>
-                      <th className="border border-gray-100 py-2 px-4">Region</th>
-                      <th className="border border-gray-100 py-2 px-2">Status</th>
-                      <th className="border border-gray-100 py-2 px-2">AD</th>
+                      <th className="border border-gray-100 py-2 px-2">State</th>
+                      <th className="border border-gray-100 py-2 px-4">Private IP</th>
+                      <th className="border border-gray-100 py-2 px-2">Shape</th>
+                      <th className="border border-gray-100 py-2 px-2">OCPU Count</th>
+                      <th className="border border-gray-100 py-2 px-2">Memory (GB)</th>
                       <th className="border border-gray-100 py-2 px-2">Action</th>
                     </Tr>
                   </Thead>
@@ -165,16 +173,22 @@ function InstanceItem({instance}, key) {
       <Td className="border border-gray-100 py-2 px-4 text-center">
         {instance.displayName}
       </Td>
-      <Td className="border border-gray-100 py-2 px-4">
-        {instance.region}
-      </Td>
       <Td className="border border-gray-100 py-2 px-2">
         <StatusLabel statusType={instance.lifecycleState}>
           {instance.lifecycleState}
         </StatusLabel>
       </Td>
+      <Td className="border border-gray-100 py-2 px-4">
+        {instance.vnic}
+      </Td>
       <Td className="border border-gray-100 py-2 px-2">
-        {instance.availabilityDomain}
+        {instance.shape}
+      </Td>
+      <Td className="border border-gray-100 py-2 px-2">
+        {instance.shapeConfig.ocpus}
+      </Td>
+      <Td className="border border-gray-100 py-2 px-2">
+        {instance.shapeConfig.memoryInGBs}
       </Td>
       <Td>
       <Form

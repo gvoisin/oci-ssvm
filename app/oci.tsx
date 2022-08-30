@@ -79,7 +79,7 @@ export async function getRegions({tenancy: string}): Promise<identity.models.Reg
     return response.items;
 }
 
-export async function getWorkstations(selectedCompartmentId:string = defaultCompartmentId) {
+export async function getInstances(selectedCompartmentId:string = defaultCompartmentId) {
     const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
     const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
     console.log(selectedCompartmentId)
@@ -88,7 +88,6 @@ export async function getWorkstations(selectedCompartmentId:string = defaultComp
             compartmentId: selectedCompartmentId,
         };
         const listInstancesResponse = await client.listInstances(listInstancesRequest);
-//        console.log(listInstancesResponse.items);
         return listInstancesResponse.items;
     } catch (error) {
         console.log("listInstances Failed with error  " + error);
@@ -96,6 +95,46 @@ export async function getWorkstations(selectedCompartmentId:string = defaultComp
     return null;
 }
 
+export async function getInstance(instanceId:string) {
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+    const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
+    try {
+        const listInstancesRequest: core.requests.GetInstanceRequest = {
+            instanceId: instanceId,
+        };
+        const getInstancesResponse = await client.getInstance(listInstancesRequest);
+        console.log(getInstancesResponse);
+        return null;
+    } catch (error) {
+        console.log("getInstances Failed with error  " + error);
+    }
+    return null;
+}
+
+export async function getInstancePrimaryPrivateIp(instance) {
+    const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
+    const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
+    const networkClient = new core.VirtualNetworkClient({ authenticationDetailsProvider: provider });
+    try {
+        const request: core.requests.ListVnicAttachmentsRequest = {
+            instanceId: instance.id,
+            compartmentId: instance.compartmentId
+        };
+        const listVnicAttachmentsResponse = await client.listVnicAttachments(request);
+//        console.log(listVnicAttachmentsResponse.items);
+
+        const requestVnic: core.requests.GetVnicRequest = {
+            vnicId: listVnicAttachmentsResponse.items[0].vnicId
+        }
+        const getVnicResponse = await networkClient.getVnic(requestVnic);
+        const instancePrimaryIp = getVnicResponse.vnic.isPrimary ? getVnicResponse.vnic.privateIp: "";
+
+        return instancePrimaryIp;
+    } catch (error) {
+        console.log("getInstances Failed with error  " + error);
+    }
+    return null;
+}
 
 export async function startInstance(instanceId) {
     console.log("starting "  + instanceId);
