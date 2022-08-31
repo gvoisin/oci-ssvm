@@ -35,7 +35,7 @@ export async function loader({ request, params }: LoaderArgs) {
   console.log(defaultTagNames);
   // Filter with Tags to only get Dev workstations : vmtypes->dev->workstation
   let listWorkstations = vmInstances?.filter(function (vmInstance) {
-    return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs]["dev"] === defaultTagValue) && vmInstance.lifecycleState !== InstanceLifecycleState.Terminated;
+    return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs][defaultTagName] === defaultTagValue) && vmInstance.lifecycleState !== InstanceLifecycleState.Terminated;
   })
 
   const addVnic = async (instance) => {

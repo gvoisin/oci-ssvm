@@ -1,7 +1,7 @@
 import { redirect } from "@remix-run/node";
 
 export async function loader({ request }: LoaderArgs) {
-    return redirect("/regions");
+    return redirect("/workstations");
   }
 
 export default function IndexRoute() {
