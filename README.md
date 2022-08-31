@@ -5,7 +5,8 @@
 Welcome to the VM Self-Service Application for OCI (Oracle Cloud Infrastructure).
 This application allows key users/developers to start an OCI instance on-demand through a simple Web application which runs on OCI.
 
-The objective of this application is to give the users the possibility to start their Dev VM when they need them and use the [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) script to automatically stop those instances every night.
+The objective of this application is to give the users the possibility to start their Dev VM only when they need them and stop them afterwards. 
+The [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) script could also be used to schedule an automatic shutdown of those instances every night.
 
 
 ## Features

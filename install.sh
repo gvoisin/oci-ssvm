@@ -48,7 +48,7 @@ then
   echo "export DEFAULT_COMPARTMENTNAME=$compartmentName" >> start.sh
   echo "export DEFAULT_TENANTID=$tenancyId" >> start.sh
   echo "export TAG_NAMESPACE=vmtypes" >> start.sh
-  echo "export TAG_NAME=dev,test,prod" >> start.sh
+  echo "export TAG_NAME=dev" >> start.sh
   echo "export TAG_VALUE=workstation" >> start.sh
   echo "" >> start.sh
   chmod +x start.sh
