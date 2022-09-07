@@ -82,7 +82,6 @@ export async function getRegions({tenancy: string}): Promise<identity.models.Reg
 export async function getInstances(selectedCompartmentId:string = defaultCompartmentId) {
     const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
     const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
-    console.log(selectedCompartmentId)
     try {
         const listInstancesRequest: core.requests.ListInstancesRequest = {
             compartmentId: selectedCompartmentId,
@@ -103,8 +102,7 @@ export async function getInstance(instanceId:string) {
             instanceId: instanceId,
         };
         const getInstancesResponse = await client.getInstance(listInstancesRequest);
-        console.log(getInstancesResponse);
-        return null;
+        return getInstancesResponse;
     } catch (error) {
         console.log("getInstances Failed with error  " + error);
     }
@@ -137,7 +135,6 @@ export async function getInstancePrimaryPrivateIp(instance) {
 }
 
 export async function actionInstance(instanceId, action) {
-    console.log(action + " "  + instanceId);
     const provider = await ociAuthenticationDetailsProvider(ENV_PRODUCTION);
     const client = new core.ComputeClient({ authenticationDetailsProvider: provider });
 

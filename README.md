@@ -5,21 +5,20 @@
 Welcome to the VM Self-Service Application for OCI (Oracle Cloud Infrastructure).
 This application allows key users/developers to start an OCI instance on-demand through a simple Web application which runs on OCI.
 
-The objective of this application is to give the users the possibility to start their Dev VM only when they need them and stop them afterwards. 
-The [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) script could also be used to schedule an automatic shutdown of those instances every night.
-
+With this applications, users don't need any OCI console access; the application only lists the OCI instances relevant for Self-Service (filtered by OCI Tags). They can start or stop the instance and get the IP address to connect to the instance using RDP or ssh.
+Combined with the [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) script, you can also schedule an automatic shutdown of those instances every night.
 
 ## Features
 
 * Allow users to start some OCI instances on-demand
 * user can select instances across compartments
 * only instances with specific Tags are visible in the application (tags have to be defined in OCI and in ENV variables)
-* the application should be used alongside [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) to schedule the automatic shutdown of the VM every night or according to the users requirements
+* the application should be used alongside [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) to schedule the automatic shutdown of the VM every night or according to the users' requirements
 
 ## Install application into (free-tier) Oracle Linux Instance
 
 * create a free-tier compute instance using the Oracle Linux 9.0; for obvious security reasons, the instance **must** be in a private subnet
-  * you can use an ARM shape with miniumm OCPU and memory
+  * you can use an ARM shape with minimum OCPU and memory
 * Create a Dynamic Group called dg_ocissvm and add the OCID of your instance to the group, using this command:
   
   ```
@@ -63,41 +62,30 @@ The [OCI-AutoScale](https://github.com/AnykeyNL/OCI-AutoScale) script could also
 
     ```shell
     Enter Your Tenancy OCID: ocid1.tenancy.oc1..xxxxxxx
-    Enter Your default Compartment OCID: ocid1.compartment.oc1..xxxxxx
+    Enter Your default Compartment Name: mycompartment
     ```
 
-    * the script will then get the compartment name, build and start the application
+    * the script will then get the compartment ID, build and start the application
 
     ```shell
-    Default Compartment Name is : jde
-    Creating start.sh file ...
-    🏎 -- Building the application ...
+    --------------------------------------------------------------------------------
+    ---- --- OCI configuration:
+    --------------------------------------------------------------------------------
+    2022-09-07 18:45:34 [INFO]  DEFAULT_COMPARTMENTID=ocid1.compartment.oc1..xxx
+    2022-09-07 18:45:34 [INFO]  DEFAULT_COMPARTMENTNAME=dev
+    2022-09-07 18:45:34 [INFO]  DEFAULT_TENANTID=ocid1.tenancy.oc1..aaaxxxxxx
+    2022-09-07 18:45:34 [INFO]  TAG_NAMESPACE=vmtypes
+    2022-09-07 18:45:34 [INFO]  TAG_NAME=dev
+    2022-09-07 18:45:34 [INFO]  TAG_VALUE=workstation
+    2022-09-07 18:45:34 [INFO]
+    --------------------------------------------------------------------------------
+    ---- 🏎 -- Building the application ...
+    --------------------------------------------------------------------------------
 
-    > build
-    > run-s build:*
-
-
-    > build:css
-    > npm run generate:css -- --minify
-
-
-    > generate:css
-    > tailwindcss -o ./app/styles/tailwind.css "--minify"
-
-
-    Done in 554ms.
-
-    > build:remix
-    > remix build
-
-    Building Remix app in production mode...
-    Built in 2.6s
-    🏎 -- Starting the application ...
-    nohup: redirecting stderr to stdout
-
-    > start
-    > remix-serve build
-
+    Done in 590ms.
+    --------------------------------------------------------------------------------
+    ---- 🏎 -- Starting the application ...
+    --------------------------------------------------------------------------------
     Remix App Server started at http://localhost:3000 (http://10.1.0.14:3000)
     ```
 

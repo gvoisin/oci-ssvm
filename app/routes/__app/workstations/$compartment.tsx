@@ -4,6 +4,7 @@ import { ActionFunction, LoaderFunction, redirect } from "@remix-run/node"
 import { json } from "@remix-run/node";
 import { getCompartments, getInstances, actionInstance, getInstancePrimaryPrivateIp, defaultTagNs, defaultTagName, defaultTagValue, defaultTagNames } from "~/oci";
 import { InstanceLifecycleState } from "~/constants";
+import vmImage from "~/images/VirtualMachine.png";
 
 import {
   Select,
@@ -32,7 +33,6 @@ export async function loader({ request, params }: LoaderArgs) {
 
   const vmInstances = await getInstances(selectedCompartmentId);
 
-  console.log(defaultTagNames);
   // Filter with Tags to only get Dev workstations : vmtypes->dev->workstation
   let listWorkstations = vmInstances?.filter(function (vmInstance) {
     return vmInstance.definedTags["vmtypes"] && (vmInstance.definedTags[defaultTagNs][defaultTagName] === defaultTagValue) && vmInstance.lifecycleState !== InstanceLifecycleState.Terminated;
@@ -51,12 +51,9 @@ export const action: ActionFunction = async ({ request }: { request: Request }) 
   const formData = await request.formData();
   const { intent, ...values } = Object.fromEntries(formData)
 
-  console.log(Object.fromEntries(formData))
   switch (intent) {
     case "update-compartment": {
       const selectedCompartmentId = formData?.get("compartment");
-      console.log(selectedCompartmentId);
-      console.log("update-compartment");
       return redirect((`workstations/${selectedCompartmentId}`))
 
     }
@@ -120,13 +117,29 @@ export default function WorkstationsRoute() {
             method="post"
             className="refresh">
               <input type="hidden" name="intent" value="refresh-workstations" />
-              <button
+
+              <button 
+                className="inline-flex items-center justify-center w-40 mx-40 px-3 py-2 text-sm font-medium text-white transition bg-blue-500 border border-blue-500 rounded appearance-none cursor-pointer select-none hover:border-blue-800 hover:bg-blue-800 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:pointer-events-none disabled:opacity-75"
+                action="submit"
+                disabled={isBusy}
+                name="_action"
+                value="refresh">
+                {isBusy ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 animate-spin" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd"
+                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                  clipRule="evenodd" />
+                </svg>
+                ): ""}
+                <span>{isBusy ? 'Refreshing' : 'Refresh'}</span>
+              </button>
+              {/* <button
                 action="submit"
                 className="bg-blue-300 p-2  w-40 mx-40 rounded hover:bg-blue-600 hover:text-white shadow-lg"
                 disabled={isBusy}
                 aria-label="Refresh"
                 name="_action"
-                value="refresh">{isBusy ? 'Refreshing' : 'Refresh'}</button>
+                value="refresh">{isBusy ? 'Refreshing' : 'Refresh'}</button> */}
             </refreshForm.Form>
 
 
@@ -134,20 +147,20 @@ export default function WorkstationsRoute() {
       <div className="overflow-hidden rounded-lg border border-gray-200 col-span-4">
         { !isBusy ? (<div>
           { workstationsNotFound ?
-            (<div className="p-12 text-red-500">No workstations found in this compartment <strong>{selectedCompartment.name}</strong></div>) 
+            (<div className="p-2 text-red-500">No workstations found in this compartment <strong>{selectedCompartment.name}</strong></div>) 
             : (
-              <TableContainer>
+              <TableContainer className="w-auto">
                 <Table variant='simple' colorScheme='teal'>
                   <Thead>
                     <Tr>
-                      <th className="border border-gray-100 py-2 px-4"></th>
-                      <th className="border border-gray-100 py-2 px-4">Name</th>
+                      <th className="border border-gray-100 py-2 px-2"></th>
+                      <th className="border border-gray-100 py-2 px-2">Name</th>
                       <th className="border border-gray-100 py-2 px-2">State</th>
-                      <th className="border border-gray-100 py-2 px-4">Private IP</th>
+                      <th className="border border-gray-100 py-2 px-2">Private IP</th>
                       <th className="border border-gray-100 py-2 px-2">Shape</th>
                       <th className="border border-gray-100 py-2 px-2">OCPU</th>
-                      <th className="border border-gray-100 py-2 px-2">Memory (GB)</th>
-                      <th className="border border-gray-100 py-2 px-2">Action</th>
+                      <th className="border border-gray-100 py-2 px-2 w-auto">Memory (GB)</th>
+                      <th className="border border-gray-100 py-2 px-2 w-40">Action</th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -177,7 +190,7 @@ function InstanceItem({instance}, key) {
 
   switch (instance.lifecycleState)  {
     case  InstanceLifecycleState.Running:
-        rowColor = "bg-green-50";
+        rowColor = "bg-green-50 ";
         isStartable = false;
         isStoppable = true;
         break;
@@ -193,8 +206,9 @@ function InstanceItem({instance}, key) {
   }
 
   return (
-    <Tr className={rowColor}>
-      <Td className="border border-gray-100 py-2 px-4">
+    <Tr className={isSubmitting ? 'bg-yellow-100': rowColor}>
+      <Td className="border border-gray-100 py-2 px-2">
+      <img src={vmImage} />
       </Td>
       <Td className="border border-gray-100 py-2 px-4 text-center">
         {instance.displayName}
@@ -216,7 +230,7 @@ function InstanceItem({instance}, key) {
       <Td className="border border-gray-100 py-2 px-2">
         {instance.shapeConfig.memoryInGBs}
       </Td>
-      <Td>
+      <Td className="border border-gray-100 py-2 px-2">
       <Form
           method="post"
           className="update-compartment">
@@ -226,7 +240,7 @@ function InstanceItem({instance}, key) {
           <button
             type='submit'
             className="bg-green-300 p-2  w-20 mx-20 rounded  hover:bg-green-600 hover:text-white"
-            hidden={isStoppable}
+            hidden={isStoppable|| isSubmitting}
             disabled={!isStartable}
             aria-label="start"
             name="_action"
@@ -241,7 +255,7 @@ function InstanceItem({instance}, key) {
           <button
             type='submit'
             className="bg-red-300 p-2  w-20 mx-20 rounded  hover:bg-red-600 hover:text-white"
-            hidden={isStartable}
+            hidden={isStartable || isSubmitting}
             disabled={!isStoppable}
             aria-label="stop"
             name="_action"

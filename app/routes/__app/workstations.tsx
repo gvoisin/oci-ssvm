@@ -18,9 +18,7 @@ import {
 
 
 export async function loader({ request,params }: LoaderArgs) {
-  console.log(params)
   if (params?.compartment === undefined ) {  
-    console.log("tes")
     return redirect(`/workstations/${defaultCompartmentName}`)}
   return null;
 }
