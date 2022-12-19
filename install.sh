@@ -276,20 +276,22 @@ function create_startup {
   log2 info "Creating start.sh file ..."
 
   log2 header "--- OCI configuration:"
-  log2 info " DEFAULT_COMPARTMENTID=$compartmentId"
-  log2 info " DEFAULT_COMPARTMENTNAME=$compartmentName"
-  log2 info " DEFAULT_TENANTID=$tenancyId"
-  log2 info " TAG_NAMESPACE=vmtypes"
-  log2 info " TAG_NAME=dev"
-  log2 info " TAG_VALUE=workstation"
+  log2 info " OCI_COMPARTMENTID=$compartmentId"
+  log2 info " OCI_COMPARTMENTNAME=$compartmentName"
+  log2 info " OCI_TENANTID=$tenancyId"
+  log2 info " OCI_TAG_NAMESPACE=vmtypes"
+  log2 info " OCI_TAG_NAME=dev"
+  log2 info " OCI_TAG_VALUE=workstation"
+  log2 info " OCI_PROVIDER=instance"
   log2 info ""
 
-  echo "export DEFAULT_COMPARTMENTID=$compartmentId" > start.sh
-  echo "export DEFAULT_COMPARTMENTNAME=$compartmentName" >> start.sh
-  echo "export DEFAULT_TENANTID=$tenancyId" >> start.sh
-  echo "export TAG_NAMESPACE=vmtypes" >> start.sh
-  echo "export TAG_NAME=dev" >> start.sh
-  echo "export TAG_VALUE=workstation" >> start.sh
+  echo "export OCI_COMPARTMENTID=$compartmentId" > start.sh
+  echo "export OCI_COMPARTMENTNAME=$compartmentName" >> start.sh
+  echo "export OCI_TENANTID=$tenancyId" >> start.sh
+  echo "export OCI_TAG_NAMESPACE=vmtypes" >> start.sh
+  echo "export OCI_TAG_NAME=dev" >> start.sh
+  echo "export OCI_TAG_VALUE=workstation" >> start.sh
+  echo "export OCI_PROVIDER=instance" >> start.sh
   echo "" >> start.sh
   chmod +x start.sh
   echo "npm  run start" >> start.sh
